@@ -81,7 +81,7 @@
     </div>
 
     <script>
-        // Supabase 설정 (여기에 실제 값을 넣으세요)
+        // Supabase 설정
         const SUPABASE_URL = 'https://kpugcsqwhvyfgdefhvfs.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwdWdjc3F3aHZ5ZmdkZWZodmZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI5MzUzOTAsImV4cCI6MjA2ODUxMTM5MH0.H5UmH107Ob-fKk8X07nBX7EDuFXP3mRWKgqNNX7z2pY';
         
@@ -89,9 +89,11 @@
         const APP_STORE_URL = 'https://apps.apple.com/app/YOUR_APP_ID';
         const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.brandi.app';
         
-        // URL에서 코드 추출
-        const pathSegments = window.location.pathname.split('/');
-        const code = pathSegments[pathSegments.length - 1];
+        // Query parameter에서 코드 추출 (?c=abc123)
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('c');
+        
+        console.log('Code from URL:', code);
         
         // 사용자 에이전트 확인
         const userAgent = navigator.userAgent || navigator.vendor || window.opera;
@@ -100,6 +102,13 @@
         
         // 짧은 링크 조회 및 리다이렉트 (개인정보 보호 강화)
         async function resolveAndRedirect() {
+            if (!code) {
+                document.getElementById('status').innerHTML = 
+                    '<p class="message">❌ 잘못된 링크입니다.<br>코드를 찾을 수 없습니다.</p>';
+                showStoreLinks();
+                return;
+            }
+            
             try {
                 // 안전한 RPC 함수 사용 (필요한 정보만 반환)
                 const response = await fetch(
@@ -116,17 +125,19 @@
                 );
                 
                 const data = await response.json();
+                console.log('Response:', data);
                 
                 if (data && data.length > 0) {
                     const linkData = data[0];
                     
                     // 딥링크 생성
                     const deepLink = `brandi://${linkData.link_type}/${linkData.target_id}`;
+                    console.log('Deep link:', deepLink);
                     
                     // 딥링크로 리다이렉트 시도
                     window.location.href = deepLink;
                     
-                    // iOS에서는 앱이 없으면 2초 후 스토어로
+                    // iOS/Android에서는 앱이 없으면 2초 후 스토어로
                     setTimeout(() => {
                         showStoreLinks();
                         document.getElementById('status').innerHTML = 
@@ -136,7 +147,7 @@
                 } else {
                     // 링크를 찾을 수 없음
                     document.getElementById('status').innerHTML = 
-                        '<p class="message">❌ 링크를 찾을 수 없습니다.<br>코드가 올바른지 확인해주세요.</p>';
+                        '<p class="message">❌ 링크를 찾을 수 없습니다.<br>링크가 만료되었거나 잘못되었습니다.</p>';
                     showStoreLinks();
                 }
                 
@@ -147,8 +158,6 @@
                 showStoreLinks();
             }
         }
-        
-        // 클릭 카운트는 resolve_short_link 함수 내부에서 자동 처리됨
         
         // 스토어 링크 표시
         function showStoreLinks() {
@@ -176,4 +185,3 @@
     </script>
 </body>
 </html>
-
