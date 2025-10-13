@@ -82,8 +82,8 @@
 
     <script>
         // Supabase 설정 (여기에 실제 값을 넣으세요)
-        const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
-        const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
+        const SUPABASE_URL = 'https://kpugcsqwhvyfgdefhvfs.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwdWdjc3F3aHZ5ZmdkZWZodmZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI5MzUzOTAsImV4cCI6MjA2ODUxMTM5MH0.H5UmH107Ob-fKk8X07nBX7EDuFXP3mRWKgqNNX7z2pY';
         
         // 앱 스토어 URL
         const APP_STORE_URL = 'https://apps.apple.com/app/YOUR_APP_ID';
@@ -98,17 +98,20 @@
         const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
         const isAndroid = /android/i.test(userAgent);
         
-        // 짧은 링크 조회 및 리다이렉트
+        // 짧은 링크 조회 및 리다이렉트 (개인정보 보호 강화)
         async function resolveAndRedirect() {
             try {
-                // Supabase에서 짧은 링크 조회
+                // 안전한 RPC 함수 사용 (필요한 정보만 반환)
                 const response = await fetch(
-                    `${SUPABASE_URL}/rest/v1/short_links?code=eq.${code}&select=link_type,target_id,expires_at`,
+                    `${SUPABASE_URL}/rest/v1/rpc/resolve_short_link`,
                     {
+                        method: 'POST',
                         headers: {
                             'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-                        }
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ link_code: code })
                     }
                 );
                 
@@ -117,22 +120,8 @@
                 if (data && data.length > 0) {
                     const linkData = data[0];
                     
-                    // 만료 확인
-                    if (linkData.expires_at) {
-                        const expiresAt = new Date(linkData.expires_at);
-                        if (expiresAt < new Date()) {
-                            document.getElementById('status').innerHTML = 
-                                '<p class="message">⚠️ 이 링크는 만료되었습니다.</p>';
-                            showStoreLinks();
-                            return;
-                        }
-                    }
-                    
                     // 딥링크 생성
                     const deepLink = `brandi://${linkData.link_type}/${linkData.target_id}`;
-                    
-                    // 클릭 카운트 증가 (백그라운드)
-                    incrementClickCount(code);
                     
                     // 딥링크로 리다이렉트 시도
                     window.location.href = deepLink;
@@ -159,25 +148,7 @@
             }
         }
         
-        // 클릭 카운트 증가
-        async function incrementClickCount(code) {
-            try {
-                await fetch(
-                    `${SUPABASE_URL}/rest/v1/rpc/increment_short_link_click`,
-                    {
-                        method: 'POST',
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ link_code: code })
-                    }
-                );
-            } catch (error) {
-                console.error('Click count error:', error);
-            }
-        }
+        // 클릭 카운트는 resolve_short_link 함수 내부에서 자동 처리됨
         
         // 스토어 링크 표시
         function showStoreLinks() {
