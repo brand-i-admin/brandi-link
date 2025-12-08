@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Brand-i로 이동 중...</title>
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             display: flex;
@@ -12,19 +13,14 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            margin: 0;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             text-align: center;
             padding: 20px;
         }
-        .container {
-            max-width: 400px;
-        }
-        h1 {
-            font-size: 28px;
-            margin-bottom: 20px;
-        }
+        .container { max-width: 400px; }
+        .logo { font-size: 48px; margin-bottom: 16px; }
+        h1 { font-size: 28px; margin-bottom: 20px; }
         .spinner {
             border: 4px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
@@ -42,35 +38,47 @@
             font-size: 16px;
             line-height: 1.6;
             margin: 20px 0;
+            opacity: 0.9;
         }
-        .store-links {
-            margin-top: 40px;
-        }
+        .store-links { margin-top: 40px; }
         .store-link {
             display: inline-block;
             margin: 10px;
-            padding: 12px 24px;
+            padding: 14px 28px;
             background: white;
             color: #667eea;
             text-decoration: none;
-            border-radius: 8px;
+            border-radius: 25px;
             font-weight: 600;
             transition: transform 0.2s;
         }
-        .store-link:hover {
-            transform: scale(1.05);
+        .store-link:hover { transform: scale(1.05); }
+        .btn-open {
+            display: inline-block;
+            padding: 14px 32px;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 16px;
+            margin: 16px 8px 8px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🚀 Brand-i로 이동 중...</h1>
-        <div class="spinner"></div>
-        <p class="message">잠시만 기다려주세요.<br>앱을 실행하고 있습니다.</p>
+        <div class="logo">🎯</div>
+        <h1>BRAND:I</h1>
+        <div class="spinner" id="spinner"></div>
+        <p class="message" id="message">앱에서 열기 중...</p>
         <div id="status"></div>
         
+        <!-- 앱 열기 버튼 (앱이 안 열렸을 때 표시) -->
+        <a href="#" id="open-app-btn" class="btn-open" style="display: none;">앱에서 열기</a>
+        
         <div class="store-links" id="store-links" style="display: none;">
-            <p class="message">앱이 설치되어 있지 않나요?<br>아래에서 다운로드하세요!</p>
+            <p class="message">앱이 설치되어 있지 않나요?</p>
             <a href="#" id="app-store-link" class="store-link" style="display: none;">
                 🍎 App Store
             </a>
@@ -100,11 +108,16 @@
         const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
         const isAndroid = /android/i.test(userAgent);
         
-        // 짧은 링크 조회 및 리다이렉트 (개인정보 보호 강화)
+        // 현재 딥링크 저장 (버튼 클릭용)
+        let currentDeepLink = null;
+        
+        // 짧은 링크 조회 및 리다이렉트
         async function resolveAndRedirect() {
             if (!code) {
+                document.getElementById('spinner').style.display = 'none';
+                document.getElementById('message').innerHTML = '❌ 잘못된 링크입니다.';
                 document.getElementById('status').innerHTML = 
-                    '<p class="message">❌ 잘못된 링크입니다.<br>코드를 찾을 수 없습니다.</p>';
+                    '<p class="message">코드를 찾을 수 없습니다.</p>';
                 showStoreLinks();
                 return;
             }
@@ -130,56 +143,70 @@
                 if (data && data.length > 0) {
                     const linkData = data[0];
                     
-                    // 딥링크 생성
+                    // 딥링크 생성 (brandi://type/id 형식)
                     const deepLink = `brandi://${linkData.link_type}/${linkData.target_id}`;
                     console.log('Deep link:', deepLink);
                     
+                    currentDeepLink = deepLink;
+                    
                     // 딥링크로 리다이렉트 시도
-                    let appOpened = false;
-                    
-                    // 페이지가 백그라운드로 가면 앱이 열린 것으로 판단
-                    const visibilityHandler = () => {
-                        if (document.hidden) {
-                            appOpened = true;
-                        }
-                    };
-                    document.addEventListener('visibilitychange', visibilityHandler);
-                    
-                    // 블러 이벤트로도 확인 (iOS에서 더 안정적)
-                    const blurHandler = () => {
-                        appOpened = true;
-                    };
-                    window.addEventListener('blur', blurHandler);
-                    
-                    window.location.href = deepLink;
-                    
-                    // 앱이 없으면 2.5초 후 스토어로 (조금 더 여유있게)
-                    setTimeout(() => {
-                        // 이벤트 리스너 제거
-                        document.removeEventListener('visibilitychange', visibilityHandler);
-                        window.removeEventListener('blur', blurHandler);
-                        
-                        // 앱이 열리지 않은 경우에만 스토어 링크 표시
-                        if (!appOpened) {
-                            showStoreLinks();
-                            document.getElementById('status').innerHTML = 
-                                '<p class="message">앱이 설치되어 있지 않은 것 같습니다.</p>';
-                        }
-                    }, 2500);
+                    tryOpenApp(deepLink);
                     
                 } else {
-                    // 링크를 찾을 수 없음
-                    document.getElementById('status').innerHTML = 
-                        '<p class="message">❌ 링크를 찾을 수 없습니다.<br>링크가 만료되었거나 잘못되었습니다.</p>';
-                    showStoreLinks();
+                    // 링크를 찾을 수 없음 - 폴백으로 brandi://link?c=xxx 시도
+                    console.log('RPC returned no data, trying fallback');
+                    const fallbackLink = `brandi://link?c=${encodeURIComponent(code)}`;
+                    currentDeepLink = fallbackLink;
+                    tryOpenApp(fallbackLink);
                 }
                 
             } catch (error) {
                 console.error('Error:', error);
-                document.getElementById('status').innerHTML = 
-                    '<p class="message">❌ 오류가 발생했습니다.<br>잠시 후 다시 시도해주세요.</p>';
-                showStoreLinks();
+                // RPC 실패 시 폴백으로 brandi://link?c=xxx 시도
+                const fallbackLink = `brandi://link?c=${encodeURIComponent(code)}`;
+                currentDeepLink = fallbackLink;
+                tryOpenApp(fallbackLink);
             }
+        }
+        
+        // 앱 열기 시도
+        function tryOpenApp(deepLink) {
+            let appOpened = false;
+            
+            // 페이지가 백그라운드로 가면 앱이 열린 것으로 판단
+            const visibilityHandler = () => {
+                if (document.hidden) {
+                    appOpened = true;
+                }
+            };
+            document.addEventListener('visibilitychange', visibilityHandler);
+            
+            // 블러 이벤트로도 확인 (iOS에서 더 안정적)
+            const blurHandler = () => {
+                appOpened = true;
+            };
+            window.addEventListener('blur', blurHandler);
+            
+            // 딥링크로 이동
+            window.location.href = deepLink;
+            
+            // 앱이 없으면 2초 후 버튼 표시
+            setTimeout(() => {
+                document.removeEventListener('visibilitychange', visibilityHandler);
+                window.removeEventListener('blur', blurHandler);
+                
+                if (!appOpened) {
+                    document.getElementById('spinner').style.display = 'none';
+                    document.getElementById('message').textContent = '앱이 열리지 않았나요?';
+                    
+                    // 앱 열기 버튼 표시
+                    const openBtn = document.getElementById('open-app-btn');
+                    openBtn.href = deepLink;
+                    openBtn.style.display = 'inline-block';
+                    
+                    showStoreLinks();
+                }
+            }, 2000);
         }
         
         // 스토어 링크 표시
