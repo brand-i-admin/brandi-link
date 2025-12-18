@@ -187,8 +187,18 @@
             };
             window.addEventListener('blur', blurHandler);
             
-            // 딥링크로 이동
-            window.location.href = deepLink;
+            // Android: Intent URL 사용 (Custom Tabs/WebView에서 동작)
+            // iOS: 기존 custom scheme 사용
+            if (isAndroid) {
+                // brandi://post/abc123 → intent://post/abc123#Intent;...
+                const path = deepLink.replace('brandi://', '');
+                const intentUrl = `intent://${path}#Intent;scheme=brandi;package=io.brandi.app;S.browser_fallback_url=${encodeURIComponent(PLAY_STORE_URL)};end;`;
+                console.log('Android Intent URL:', intentUrl);
+                window.location.href = intentUrl;
+            } else {
+                // iOS는 기존 방식
+                window.location.href = deepLink;
+            }
             
             // 앱이 없으면 2초 후 버튼 표시
             setTimeout(() => {
@@ -199,9 +209,14 @@
                     document.getElementById('spinner').style.display = 'none';
                     document.getElementById('message').textContent = '앱이 열리지 않았나요?';
                     
-                    // 앱 열기 버튼 표시
+                    // 앱 열기 버튼 표시 (Android는 Intent URL, iOS는 custom scheme)
                     const openBtn = document.getElementById('open-app-btn');
-                    openBtn.href = deepLink;
+                    if (isAndroid) {
+                        const path = deepLink.replace('brandi://', '');
+                        openBtn.href = `intent://${path}#Intent;scheme=brandi;package=io.brandi.app;S.browser_fallback_url=${encodeURIComponent(PLAY_STORE_URL)};end;`;
+                    } else {
+                        openBtn.href = deepLink;
+                    }
                     openBtn.style.display = 'inline-block';
                     
                     showStoreLinks();
