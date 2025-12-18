@@ -221,6 +221,11 @@
             }
         }
         
+        // 카카오톡 인앱 브라우저 감지 → 외부 브라우저로 열기
+        if (/KAKAOTALK/i.test(navigator.userAgent)) {
+            location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(location.href);
+        }
+
         // 페이지 로드 시 실행
         resolveAndRedirect();
     </script>
