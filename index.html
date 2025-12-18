@@ -171,57 +171,33 @@
         
         // 앱 열기 시도
         function tryOpenApp(deepLink) {
-            let appOpened = false;
-            
-            // 페이지가 백그라운드로 가면 앱이 열린 것으로 판단
-            const visibilityHandler = () => {
-                if (document.hidden) {
-                    appOpened = true;
-                }
-            };
-            document.addEventListener('visibilitychange', visibilityHandler);
-            
-            // 블러 이벤트로도 확인 (iOS에서 더 안정적)
-            const blurHandler = () => {
-                appOpened = true;
-            };
-            window.addEventListener('blur', blurHandler);
-            
-            // Android: Intent URL 사용 (Custom Tabs/WebView에서 동작)
-            // iOS: 기존 custom scheme 사용
             if (isAndroid) {
-                // brandi://post/abc123 → intent://post/abc123#Intent;...
+                // Android: 자동 리다이렉트 안 함, 버튼 표시
+                document.getElementById('spinner').style.display = 'none';
+                document.getElementById('message').textContent = '아래 버튼을 눌러 앱을 열어주세요';
+
+                // Intent URL로 버튼 설정
                 const path = deepLink.replace('brandi://', '');
                 const intentUrl = `intent://${path}#Intent;scheme=brandi;package=io.brandi.app;S.browser_fallback_url=${encodeURIComponent(PLAY_STORE_URL)};end;`;
-                console.log('Android Intent URL:', intentUrl);
-                window.location.href = intentUrl;
+
+                const openBtn = document.getElementById('open-app-btn');
+                openBtn.href = intentUrl;
+                openBtn.style.display = 'inline-block';
+                showStoreLinks();
             } else {
-                // iOS는 기존 방식
+                // iOS: 기존대로 자동 리다이렉트
                 window.location.href = deepLink;
-            }
-            
-            // 앱이 없으면 2초 후 버튼 표시
-            setTimeout(() => {
-                document.removeEventListener('visibilitychange', visibilityHandler);
-                window.removeEventListener('blur', blurHandler);
-                
-                if (!appOpened) {
+
+                // 2초 후 버튼 표시 (실패 시)
+                setTimeout(() => {
                     document.getElementById('spinner').style.display = 'none';
                     document.getElementById('message').textContent = '앱이 열리지 않았나요?';
-                    
-                    // 앱 열기 버튼 표시 (Android는 Intent URL, iOS는 custom scheme)
                     const openBtn = document.getElementById('open-app-btn');
-                    if (isAndroid) {
-                        const path = deepLink.replace('brandi://', '');
-                        openBtn.href = `intent://${path}#Intent;scheme=brandi;package=io.brandi.app;S.browser_fallback_url=${encodeURIComponent(PLAY_STORE_URL)};end;`;
-                    } else {
-                        openBtn.href = deepLink;
-                    }
+                    openBtn.href = deepLink;
                     openBtn.style.display = 'inline-block';
-                    
                     showStoreLinks();
-                }
-            }, 2000);
+                }, 2000);
+            }
         }
         
         // 스토어 링크 표시
