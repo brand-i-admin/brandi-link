@@ -1,0 +1,11 @@
+[{
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.brandi.app",
+      "sha256_cert_fingerprints": [
+        "58:94:9B:E0:EF:B6:9A:27:FF:56:D9:44:72:B1:5B:9D:2D:81:03:D0:C5:7B:5F:EE:5D:26:4C:83:4E:46:16:9F",
+        "E3:8A:A1:81:85:10:0F:2F:F9:F3:7C:6F:4D:F4:8A:EE:B1:44:CC:E6:D1:44:C6:6E:1D:94:82:91:10:5A:28:F8"
+      ]
+    }
+  }]
